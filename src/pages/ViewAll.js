@@ -1,8 +1,6 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
-import { fetchGenres, fetchCountries } from "../api"
+import { fetchGenres } from "../api"
 import PaginatedMovieGrid from "../components/PaginatedMovieGrid"
 
 const ViewAll = () => {
@@ -13,15 +11,70 @@ const ViewAll = () => {
   const [title, setTitle] = useState("")
   const [isSeries, setIsSeries] = useState(false)
   const [genres, setGenres] = useState({ movie: [], tv: [] })
-  const [countries, setCountries] = useState([])
   const [filterOpen, setFilterOpen] = useState(false)
   const [filter, setFilter] = useState({
-    genre: "",
-    yearFrom: "",
-    yearTo: "",
-    rating: "",
-    country: "",
+    countries: [],
+    movieTypes: [],
+    ratings: [],
+    genres: [],
+    years: [],
+    sortBy: "popularity.desc",
   })
+
+  const countryMapping = {
+    US: "United States",
+    GB: "United Kingdom",
+    CA: "Canada",
+    KR: "South Korea",
+    HK: "Hong Kong",
+    JP: "Japan",
+    FR: "France",
+    TH: "Thailand",
+    CN: "China",
+    AU: "Australia",
+    DE: "Germany",
+  }
+
+  const movieTypeOptions = [
+    { id: "movie", name: "Movies" },
+    { id: "tv", name: "TV Series" },
+  ]
+
+  const ratingOptions = [
+    { id: "G", name: "G (General Audiences)" },
+    { id: "PG", name: "PG (Parental Guidance)" },
+    { id: "PG-13", name: "PG-13 (13+ years)" },
+    { id: "R", name: "R (17+ years)" },
+    { id: "NC-17", name: "NC-17 (18+ years)" },
+  ]
+
+  const sortOptions = [
+    { id: "popularity.desc", name: "Most Popular" },
+    { id: "release_date.desc", name: "Newest" },
+    { id: "vote_average.desc", name: "Highest Rated" },
+    { id: "vote_count.desc", name: "Most Voted" },
+  ]
+
+  const currentYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 16 }, (_, i) => currentYear - i)
+
+  const toggleFilterItem = (category, item) => {
+    setFilter((prev) => ({
+      ...prev,
+      [category]: prev[category].includes(item) ? prev[category].filter((i) => i !== item) : [...prev[category], item],
+    }))
+  }
+
+  const isSelected = (category, item) => {
+    return filter[category].includes(item)
+  }
+
+  const handleCountryChange = (countries) => {
+    setFilter((prev) => ({
+      ...prev,
+      countries: countries,
+    }))
+  }
 
   useEffect(() => {
     const loadGenres = async () => {
@@ -29,12 +82,7 @@ const ViewAll = () => {
       const tvGenres = await fetchGenres("tv")
       setGenres({ movie: movieGenres, tv: tvGenres })
     }
-    const loadCountries = async () => {
-      const countriesData = await fetchCountries()
-      setCountries(countriesData)
-    }
     loadGenres()
-    loadCountries()
   }, [])
 
   useEffect(() => {
@@ -121,26 +169,64 @@ const ViewAll = () => {
   }, [categoryParam, genres])
 
   const applyFilter = () => {
-    let newEndpoint = endpoint
-    const params = []
+    const params = new URLSearchParams()
 
-    if (filter.genre) params.push(`with_genres=${filter.genre}`)
-    if (filter.yearFrom) params.push(`primary_release_date.gte=${filter.yearFrom}-01-01`)
-    if (filter.yearTo) params.push(`primary_release_date.lte=${filter.yearTo}-12-31`)
-    if (filter.rating) params.push(`vote_average.gte=${filter.rating}`)
-    if (filter.country) params.push(`with_origin_country=${filter.country}`)
+    // Add API key
+    params.append("api_key", process.env.REACT_APP_TMDB_API_KEY)
 
-    if (params.length > 0) {
-      newEndpoint = `${isSeries ? "discover/tv" : "discover/movie"}?${params.join("&")}&api_key=${process.env.REACT_APP_TMDB_API_KEY}`
+    // Determine media type based on filter selection or current context
+    let mediaType = "movie"
+    if (filter.movieTypes.includes("tv")) {
+      mediaType = "tv"
+      setIsSeries(true)
+    } else if (filter.movieTypes.includes("movie")) {
+      mediaType = "movie"
+      setIsSeries(false)
+    } else {
+      // Use current context if no type selected
+      mediaType = isSeries ? "tv" : "movie"
     }
 
+    // Add filters
+    if (filter.genres.length > 0) {
+      params.append("with_genres", filter.genres.join(","))
+    }
+    if (filter.countries.length > 0) {
+      params.append("with_origin_country", filter.countries.join(","))
+    }
+    if (filter.years.length > 0) {
+      const minYear = Math.min(...filter.years)
+      const maxYear = Math.max(...filter.years)
+      if (mediaType === "tv") {
+        params.append("first_air_date.gte", `${minYear}-01-01`)
+        params.append("first_air_date.lte", `${maxYear}-12-31`)
+      } else {
+        params.append("primary_release_date.gte", `${minYear}-01-01`)
+        params.append("primary_release_date.lte", `${maxYear}-12-31`)
+      }
+    }
+
+    // Add sorting
+    params.append("sort_by", filter.sortBy)
+
+    // Construct new endpoint
+    const newEndpoint = `discover/${mediaType}?${params.toString()}`
+
+    console.log("[v0] Applied filter endpoint:", newEndpoint)
     setEndpoint(newEndpoint)
-    setFilterOpen(false) // Đóng bộ lọc sau khi áp dụng
+    setTitle(`Filtered ${mediaType === "tv" ? "TV Series" : "Movies"}`)
+    setFilterOpen(false)
   }
 
   const resetFilter = () => {
-    setFilter({ genre: "", yearFrom: "", yearTo: "", rating: "", country: "" })
-    setEndpoint(endpoint.split("?")[0]) // Reset về endpoint gốc
+    setFilter({
+      countries: [],
+      movieTypes: [],
+      ratings: [],
+      genres: [],
+      years: [],
+      sortBy: "popularity.desc",
+    })
     setFilterOpen(false)
   }
 
@@ -150,68 +236,150 @@ const ViewAll = () => {
     <main>
       <h1>{title}</h1>
       <div className="filter-section">
-        <button onClick={() => setFilterOpen(!filterOpen)}>Filter</button>
+        <button className="filter-toggle" onClick={() => setFilterOpen(!filterOpen)}>
+          <span className="filter-icon">▼</span> Filter
+        </button>
         {filterOpen && (
-          <div className="filter-panel">
-            <div className="filter-group">
-              <label>Genre:</label>
-              <select value={filter.genre} onChange={(e) => setFilter({ ...filter, genre: e.target.value })}>
-                <option value="">All</option>
+          <div className="advanced-filter-panel">
+            <div className="filter-header">
+              <h3>
+                <span className="filter-triangle">▼</span> Filter
+              </h3>
+            </div>
+
+            <div className="filter-row">
+              <label className="filter-label">Country:</label>
+              <div className="filter-options">
+                <div className="filter-country-dropdown">
+                  <select
+                    className="filter-country-select"
+                    value={filter.countries[0] || ""}
+                    onChange={(e) => handleCountryChange(e.target.value ? [e.target.value] : [])}
+                  >
+                    <option value="">All Countries</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="CA">Canada</option>
+                    <option value="KR">South Korea</option>
+                    <option value="HK">Hong Kong</option>
+                    <option value="JP">Japan</option>
+                    <option value="FR">France</option>
+                    <option value="TH">Thailand</option>
+                    <option value="CN">China</option>
+                    <option value="AU">Australia</option>
+                    <option value="DE">Germany</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <label className="filter-label">Type:</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-tag ${filter.movieTypes.length === 0 ? "active" : ""}`}
+                  onClick={() => setFilter((prev) => ({ ...prev, movieTypes: [] }))}
+                >
+                  All
+                </button>
+                {movieTypeOptions.map((type) => (
+                  <button
+                    key={type.id}
+                    className={`filter-tag ${isSelected("movieTypes", type.id) ? "active" : ""}`}
+                    onClick={() => toggleFilterItem("movieTypes", type.id)}
+                  >
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <label className="filter-label">Rating:</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-tag ${filter.ratings.length === 0 ? "active" : ""}`}
+                  onClick={() => setFilter((prev) => ({ ...prev, ratings: [] }))}
+                >
+                  All
+                </button>
+                {ratingOptions.map((rating) => (
+                  <button
+                    key={rating.id}
+                    className={`filter-tag ${isSelected("ratings", rating.id) ? "active" : ""}`}
+                    onClick={() => toggleFilterItem("ratings", rating.id)}
+                  >
+                    {rating.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <label className="filter-label">Genre:</label>
+              <div className="filter-options genres-grid">
+                <button
+                  className={`filter-tag ${filter.genres.length === 0 ? "active" : ""}`}
+                  onClick={() => setFilter((prev) => ({ ...prev, genres: [] }))}
+                >
+                  All
+                </button>
                 {(isSeries ? genres.tv : genres.movie).map((genre) => (
-                  <option key={genre.id} value={genre.id}>
+                  <button
+                    key={genre.id}
+                    className={`filter-tag ${isSelected("genres", genre.id) ? "active" : ""}`}
+                    onClick={() => toggleFilterItem("genres", genre.id)}
+                  >
                     {genre.name}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-            <div className="filter-group">
-              <label>Year From:</label>
-              <input
-                type="number"
-                value={filter.yearFrom}
-                onChange={(e) => setFilter({ ...filter, yearFrom: e.target.value })}
-                placeholder="YYYY"
-                min="1900"
-                max={new Date().getFullYear()}
-              />
-            </div>
-            <div className="filter-group">
-              <label>Year To:</label>
-              <input
-                type="number"
-                value={filter.yearTo}
-                onChange={(e) => setFilter({ ...filter, yearTo: e.target.value })}
-                placeholder="YYYY"
-                min="1900"
-                max={new Date().getFullYear()}
-              />
-            </div>
-            <div className="filter-group">
-              <label>Rating (&gt;=):</label>
-              <input
-                type="number"
-                value={filter.rating}
-                onChange={(e) => setFilter({ ...filter, rating: e.target.value })}
-                placeholder="e.g., 7"
-                min="0"
-                max="10"
-                step="0.1"
-              />
-            </div>
-            <div className="filter-group">
-              <label>Country:</label>
-              <select value={filter.country} onChange={(e) => setFilter({ ...filter, country: e.target.value })}>
-                <option value="">All</option>
-                {countries.map((country) => (
-                  <option key={country.iso_3166_1} value={country.iso_3166_1}>
-                    {country.english_name}
-                  </option>
+
+            <div className="filter-row">
+              <label className="filter-label">Release Year:</label>
+              <div className="filter-options">
+                <button
+                  className={`filter-tag ${filter.years.length === 0 ? "active" : ""}`}
+                  onClick={() => setFilter((prev) => ({ ...prev, years: [] }))}
+                >
+                  All
+                </button>
+                {yearOptions.map((year) => (
+                  <button
+                    key={year}
+                    className={`filter-tag ${isSelected("years", year) ? "active" : ""}`}
+                    onClick={() => toggleFilterItem("years", year)}
+                  >
+                    {year}
+                  </button>
                 ))}
-              </select>
+                <input type="text" placeholder="🔍 Enter year" className="year-search-input" />
+              </div>
             </div>
+
+            <div className="filter-row">
+              <label className="filter-label">Sort by:</label>
+              <div className="filter-options">
+                {sortOptions.map((sort) => (
+                  <button
+                    key={sort.id}
+                    className={`filter-tag ${filter.sortBy === sort.id ? "active" : ""}`}
+                    onClick={() => setFilter((prev) => ({ ...prev, sortBy: sort.id }))}
+                  >
+                    {sort.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="filter-actions">
-              <button onClick={applyFilter}>Apply</button>
-              <button onClick={resetFilter}>Cancel</button>
+              <button className="apply-filter-btn" onClick={applyFilter}>
+                Apply Filters →
+              </button>
+              <button className="close-filter-btn" onClick={resetFilter}>
+                Close
+              </button>
             </div>
           </div>
         )}
