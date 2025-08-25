@@ -24,7 +24,17 @@ export const searchMovies = async (query, country = "VN", genre = null) => {
   }
 }
 
-export const fetchMovies = async (endpoint) => {
+export const fetchMovies = async (endpoint, page = 1) => {
+  const { data } = await api.get(`/${endpoint}`, { params: { page } })
+  return {
+    results: data.results,
+    totalPages: data.total_pages,
+    totalResults: data.total_results,
+    currentPage: data.page,
+  }
+}
+
+export const fetchMoviesForGrid = async (endpoint) => {
   const { data } = await api.get(`/${endpoint}`, { params: { page: 1 } })
   return data.results
 }
@@ -86,7 +96,7 @@ export const formatDuration = (minutes) => {
   if (!minutes || isNaN(minutes) || minutes <= 0) return "N/A" // Xử lý trường hợp không hợp lệ
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  return `${hours}:${mins}:00`
+  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:00`
 }
 
 export const formatSeriesInfo = async (id, seasons) => {

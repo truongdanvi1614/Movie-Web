@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
-import { fetchMovies, fetchMovieDetails } from "../api"
+import { fetchMoviesForGrid, fetchMovieDetails } from "../api"
 
 const Hero = () => {
     const [movies, setMovies] = useState([])
@@ -12,7 +12,7 @@ const Hero = () => {
     useEffect(() => {
         const loadHeroMovies = async () => {
         try {
-            const trending = await fetchMovies("trending/movie/week")
+            const trending = await fetchMoviesForGrid("trending/movie/week")
             const validMovies = trending.filter((movie) => movie.backdrop_path).slice(0, totalMovies)
             setMovies(validMovies.length >= totalMovies ? validMovies : trending.slice(0, totalMovies))
         } catch (error) {

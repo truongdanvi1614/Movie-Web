@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { fetchGenres, fetchCountries } from "../api"
@@ -65,13 +63,13 @@ const Header = () => {
                 </div>
                 </div>
             </div>
-            <div className="country-dropdown">
+            <div className="header-country-dropdown">
                 Country
-                <div className="country-menu">
+                <div className="header-country-menu">
                 {countryColumns.map((column, columnIndex) => (
                     <div key={columnIndex} className="country-column">
                     {column.map((country) => (
-                        <Link key={country.iso_3166_1} to={`/view-all?category=country_${country.iso_3166_1}`}>
+                        <Link key={country.iso_3166_1} to={`/view-all?category=country_${country.iso_3166_1.toU}`}>
                         {country.english_name}
                         </Link>
                     ))}
