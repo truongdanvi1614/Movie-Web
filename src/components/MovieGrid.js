@@ -39,7 +39,7 @@ const MovieGrid = ({ endpoint, title, isSeries = false, limit = 10 }) => {
       <div className="category-container">
         <h2>{title}</h2>
         <a href={`/view-all?category=${endpoint.replace(/\//g, "_")}`} className="view-all">
-          View all
+          View all &gt;
         </a>
       </div>
       <div className="movie-grid-container">

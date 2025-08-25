@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
-import { fetchGenres } from "../api"
+import { fetchGenres, fetchCountries } from "../api"
 import PaginatedMovieGrid from "../components/PaginatedMovieGrid"
 
 const ViewAll = () => {
@@ -157,8 +157,8 @@ const ViewAll = () => {
           setIsSeries(true)
         } else if (category.startsWith("country_")) {
           const countryCode = category.replace("country_", "")
-          setEndpoint(`discover/movie?with_origin_country=${countryCode}`)
-          setTitle(`Movies from ${countryCode}`)
+          setEndpoint(`discover/movie?with_origin_country=${countryCode.toUpperCase()}`)
+          setTitle(`Movies from ${countryMapping[countryCode.toUpperCase()] || countryCode.toUpperCase()}`)
           setIsSeries(false)
         } else {
           setTitle("Invalid Category")

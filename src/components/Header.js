@@ -69,7 +69,7 @@ const Header = () => {
                 {countryColumns.map((column, columnIndex) => (
                     <div key={columnIndex} className="country-column">
                     {column.map((country) => (
-                        <Link key={country.iso_3166_1} to={`/view-all?category=country_${country.iso_3166_1.toU}`}>
+                        <Link key={country.iso_3166_1.toUpperCase()} to={`/view-all?category=country_${country.iso_3166_1}`}>
                         {country.english_name}
                         </Link>
                     ))}

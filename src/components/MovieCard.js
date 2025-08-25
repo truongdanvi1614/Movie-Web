@@ -107,47 +107,14 @@ const MovieCard = ({ item, isMovie = true, runtime }) => {
             />
 
             <div className="overlay">
-            <h3>{title}</h3>
-            <p>{runtime}</p>
+                <h3>{title}</h3>
+                <p>{runtime}</p>
             </div>
 
-            <div className="hover-overlay">
-            <div className="hover-content">
-                
-                {/* Movie title */}
-                <h2 className="hover-title">{title}</h2>
-
-                {/* Action buttons */}
-                <div className="action-buttons">
-                <button className="btn-watch-now">
-                    <span>▶</span> Watch Now
-                </button>
-                <button className="btn-like">
-                    <span>♡</span> Like
-                </button>
-                <button className="btn-details">
-                    <span>ⓘ</span> Details
-                </button>
-                </div>
-
-                <div className="movie-metadata">
-                <span className="age-rating">{getAgeRating()}</span>
-                <span className="year">{releaseYear}</span>
-                <span className="media-info">{getMediaInfo()}</span>
-                </div>
-
-                {/* Genres */}
-                <div className="hover-genres">
-                {genres.map((genreId) => (
-                    <span key={genreId} className="genre-tag">
-                    {genreMap[genreId] || ""}
-                    </span>
-                ))}
-                </div>
-            </div>
-            </div>
+            
         </Link>
         </div>
+        
     )
 }
 
